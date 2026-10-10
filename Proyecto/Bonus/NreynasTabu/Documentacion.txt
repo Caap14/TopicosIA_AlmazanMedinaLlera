@@ -1,0 +1,122 @@
+
+     DOCUMENTACIÓN: PROBLEMA DE LAS 8 REINAS CON BÚSQUEDA TABÚ
+
+
+INTEGRANTES:
+  - Almazán Peña César Arturo
+  - López Medina Miguel Ángel
+  - García Llera José Ángel
+
+1. ¿DE QUÉ TRATA EL PROGRAMA?
+
+El objetivo es resolver el clásico problema de las 8 reinas en un tablero de 
+ajedrez de 8x8. La regla es simple: tenemos que acomodar las 8 reinas de forma 
+que ninguna se pueda comer a otra (es decir, que no compartan fila, columna 
+ni diagonal).
+
+El programa empieza con un tablero que nosotros mismos le metemos por teclado y, 
+usando el algoritmo de Búsqueda Tabú, va moviendo las piezas paso a paso hasta 
+que los choques entre reinas queden en 0.
+
+2. ¿CÓMO GUARDAMOS EL TABLERO? (Estructura de datos)
+
+Para no complicarnos la vida usando una matriz de 8x8 con ceros y unos, usamos 
+una sola lista de 8 números llamada `posicionesR`:
+
+  - El índice de la lista es la COLUMNA (de 0 a 7).
+  - El número guardado adentro es la FILA donde está la reina (de 0 a 7).
+
+Por ejemplo, si la lista es: [2, 3, 2, 1, 2, 3, 3, 3]
+  - En la columna 0, la reina está en la fila 2.
+  - En la columna 1, la reina está en la fila 3.
+  ... y así con las 8.
+
+¿Por qué lo hicimos así?
+Porque al tener una sola casilla por columna, es imposible que dos reinas 
+choquen verticalmente. Con esto ya nos quitamos un problema de encima y el 
+algoritmo trabaja mucho más rápido.
+
+
+3. ¿CÓMO CONTAMOS LOS CHOQUES? (`cruces`)
+
+El código va comparando las reinas en parejas para ver si se están amenazando:
+
+  1. Choque horizontal: Si dos reinas tienen el mismo número de fila.
+     (posicionesR[col1] == posicionesR[col2])
+
+  2. Choque diagonal: Si la distancia entre sus filas es igual a la distancia 
+     entre sus columnas.
+     (abs(fila1 - fila2) == abs(col1 - col2))
+
+Si se cumple alguna de las dos, le sumamos 1 a la variable `cruces`. Entre más 
+alto sea este número, peor está el tablero. El chiste es bajarlo a 0.
+
+
+4. PARÁMETROS QUE USAMOS EN EL CÓDIGO
+
+  - maxIteraciones = 1000: El límite de vueltas que da el ciclo para no quedarse 
+    trabado al infinito si se complica.
+  - tamanoTabu = 7: El tamaño de la memoria de movimientos prohibidos.
+  - listaTabu = []: La lista donde vamos guardando los movimientos recientes.
+  - posicionesMejores: Guarda la mejor jugada que el programa ha encontrado en 
+    todo el proceso.
+  - mejoresCruces: El número más bajo de choques alcanzado hasta el momento.
+
+
+5. ¿CÓMO FUNCIONA LA BÚSQUEDA TABÚ AQUÍ?
+
+Si usáramos una búsqueda normal (como agarrar siempre la jugada que mejore), el 
+programa se quedaría atorado muy rápido cuando ya no vea una mejoría inmediata. 
+Por eso usamos Tabú:
+
+a) Probar vecinos:
+   En cada turno, agarramos cada una de las 8 reinas y probamos moverla a las 
+   otras 7 filas disponibles. En total se prueban 8 x 7 = 56 movimientos posibles.
+
+b) Evaluar la jugada:
+   Movemos la reina momentáneamente, contamos cuántos choques daría con esa nueva 
+   posición (`crucesPrueba`) y luego regresamos la reina a donde estaba.
+
+c) Checar si el movimiento es Tabú:
+   El movimiento lo guardamos como una pareja `(columna, filaNueva)`. Si ese 
+   movimiento ya está dentro de `listaTabu`, significa que lo hicimos hace poco 
+   y por regla está prohibido repetirlo para no dar vueltas en círculos.
+
+d) Criterio de aspiración (la excepción a la regla):
+   Si un movimiento está prohibido en la lista tabú, pero resulta que nos da 
+   un resultado con MENOS choques que el mejor que llevamos en todo el programa 
+   (`mejoresCruces`), rompemos la regla y lo dejamos pasar porque es una 
+   excelente jugada.
+
+e) Elegir el mejor vecino:
+   De las 56 opciones, nos quedamos con la que tenga menos choques y que esté 
+   permitida (no tabú o con aspiración). Ojo: aunque esta jugada tenga más 
+   choques que el tablero actual, el algoritmo la acepta para poder salirse del 
+   atorón y buscar por otro lado.
+
+f) Actualizar la lista tabú:
+   Metemos el movimiento elegido a `listaTabu`. Si la lista pasa de 7 elementos, 
+   sacamos el más viejo con `pop(0)`. Así los movimientos solo quedan 
+   bloqueados durante 7 turnos.
+
+g) Parada:
+   El ciclo termina si los cruces llegan a 0 (ya resolvimos el tablero) o si 
+   se alcanzan las 1000 iteraciones.
+
+
+6. RESUMEN DE LAS CELDAS DEL NOTEBOOK
+
+- Celda 1: Datos de nosotros y título del trabajo.
+- Celda 2: Importamos `time` para medir cuántos segundos tarda en resolverlo.
+- Celda 3: Definimos las variables de tamaño y topes.
+- Celda 4: Pide al usuario por consola que meta la fila (0 a 7) de cada reina.
+- Celda 5: Muestra en pantalla la lista inicial que metimos.
+- Celda 6: Cuenta cuántos choques tiene el tablero recién ingresado.
+- Celda 7: Prepara las variables para la búsqueda tabú (lista vacía, mejores 
+  posiciones, contadores).
+- Celda 8: El ciclo `while` principal que hace la búsqueda, revisa los 56 vecinos, 
+  controla la lista tabú y cronometra el tiempo.
+- Celda 9: Imprime el resultado final:
+    * Dibuja el tablero con 'R' donde hay reina y '.' donde está vacío.
+    * Muestra cuántos choques teníamos al inicio y cuántos quedaron (0).
+    * Dice cuántas iteraciones tomó y los segundos que tardó.

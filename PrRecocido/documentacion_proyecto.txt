@@ -1,3 +1,6 @@
+LINK REPOSITORIO
+https://github.com/Caap14/TopicosIA_AlmazanMedinaLlera/settings
+
 
 DOCUMENTACIÓN TÉCNICA DEL PROYECTO: ENRUTAMIENTO CON RECOCIDO SIMULADO
 Módulo II: Sistema de Enrutamiento para Tiendas de Autoservicio

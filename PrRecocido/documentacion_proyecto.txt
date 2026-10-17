@@ -1,0 +1,139 @@
+
+DOCUMENTACIÓN TÉCNICA DEL PROYECTO: ENRUTAMIENTO CON RECOCIDO SIMULADO
+Módulo II: Sistema de Enrutamiento para Tiendas de Autoservicio
+
+
+INSTITUCIÓN: Instituto Tecnológico de Culiacán (TecNM Campus Culiacán)
+MATERIA: Tópicos de Inteligencia Artificial
+CASO DE ESTUDIO: Red de distribución en Culiacán, Sinaloa (10 Centros y 90 Tiendas)
+FECHA: Octubre de 2026
+
+INTEGRANTES DEL EQUIPO:
+- García Llera José Ángel
+- López Medina Miguel Ángel
+- Almazán Peña César Arturo
+
+
+1. DESCRIPCIÓN GENERAL DEL PROBLEMA
+
+Se busca optimizar la distribución de abarrotes y productos comestibles para
+una cadena con 90 tiendas atendidas desde 10 centros de distribución ubicados
+en Culiacán, Sinaloa (100 nodos en total).
+
+El problema se modela asignando primero cada tienda a su centro de distribución
+más cercano según la matriz de distancias provista. A partir de esa asignación,
+se busca encontrar el orden óptimo de visita para cada centro, considerando que
+el camión sale del centro, visita todas las tiendas asignadas sin repetir
+ninguna y regresa al centro de origen (ciclo cerrado).
+
+Factores locales considerados:
+- Perecibilidad y clima: El calor habitual de Culiacán (superior a 38 °C) exige
+  reducir el tiempo de traslado para conservar alimentos frescos (lácteos, carnes
+  y vegetales) o no sobrecargar el gasto en refrigeración.
+- Tráfico urbano: En horas pico la velocidad promedio de los camiones de reparto
+  en avenidas principales se estima en 20-25 km/h.
+- Combustible: Se considera un rendimiento promedio de 6.0 km por litro y un
+  precio de combustible de $25.00 MXN por litro.
+
+2. FUNDAMENTOS DEL ALGORITMO Y CONCEPTOS CLAVE
+
+
+A) REPRESENTACIÓN DE LA SOLUCIÓN:
+   La solución se representa en memoria como una lista de 10 sublistas:
+   rutas = [ruta_0, ruta_1, ..., ruta_9].
+   Cada sublista contiene los identificadores numéricos de las tiendas asignadas
+   a ese centro en el orden en que se van a visitar. Los centros no se guardan
+   repetidos dentro de la lista de tiendas; su inclusión como punto de partida
+   y de retorno se realiza automáticamente en la función que calcula la distancia.
+
+B) SOLUCIÓN INICIAL (TRES VARIANTES EVALUADAS):
+   1. Referencia (Orden natural): Las tiendas se visitan en el orden en que
+      aparecen en el archivo original (por número de ID consecutivo). Da una
+      distancia base de 421.78 km.
+   2. Aleatorio: Se revuelven las tiendas de cada centro al azar mediante
+      random.shuffle(). Da un promedio inicial de 425.51 km.
+   3. Heurística voraz (Vecino más cercano): Desde el centro, el vehículo viaja
+      siempre a la tienda pendiente más cercana, y desde allí a la siguiente más
+      cercana. Da una solución inicial de 225.24 km.
+
+C) MECANISMO DE TRANSICIÓN (OPERADOR DE VECINDAD):
+   Para generar una solución vecina candidata, se selecciona al azar un centro
+   que tenga al menos 2 tiendas asignadas y se realiza un intercambio simple
+   (swap) entre dos posiciones aleatorias de su ruta:
+   ruta[i], ruta[j] = ruta[j], ruta[i].
+   Esto garantiza que no se pierdan tiendas ni se generen visitas duplicadas.
+
+D) SECUENCIA DE ENFRIAMIENTO Y ADAPTACIÓN ESTÁTICA:
+   Se utiliza el esquema geométrico clásico: T_(k+1) = alpha * T_k.
+   Parámetros:
+   - Temperatura inicial (T0): 10.0
+   - Temperatura final (Tf): 0.1
+   - Factor de enfriamiento (alpha): 0.95
+   Se denomina "adaptación estática" porque tanto alpha como el número de pasos
+   por temperatura son constantes fijas definidas antes de iniciar y no se
+   modifican dinámicamente en tiempo de ejecución.
+
+E) MECANISMO DE ACEPTACIÓN (CRITERIO DE METRÓPOLIS):
+   Se calcula la diferencia de distancia: delta = costo_nuevo - costo_actual.
+   - Si delta <= 0: Se acepta el cambio de forma obligatoria (mejora o empate).
+   - Si delta > 0: Se calcula la probabilidad P = exp(-delta / T).
+     Se genera un número aleatorio uniforme r entre 0 y 1. Si r < P, se acepta
+     la solución peor.
+   Propósito: Al inicio con temperatura alta (T=10.0), la probabilidad de aceptar
+   empeoramientos es alta (~82% para un aumento de 2 km), lo que permite explorar
+   y escapar de mínimos locales. Al enfriarse (T -> 0.1), la probabilidad decae
+   a valores casi nulos (10^-9), volviendo la búsqueda puramente descendente.
+
+F) ESTADO DE EQUILIBRIO:
+   En cada nivel de temperatura se ejecutan 100 intentos (PASOS_POR_TEMP = 100)
+   antes de aplicar el factor de enfriamiento alpha. Este bloque simula una
+   cadena de Markov finita para alcanzar estabilidad térmica relativa en cada paso.
+
+G) JUSTIFICACIÓN FRENTE A BÚSQUEDA TABÚ:
+   Se seleccionó Recocido Simulado porque es un método estocástico muy ligero en
+   memoria (solo requiere almacenar la solución actual y la mejor histórica),
+   mientras que la Búsqueda Tabú requiere gestionar matrices de memoria de
+   tenencia tabú y evaluar vecindades completas en cada paso, lo que incrementa
+   el costo computacional para 100 nodos y 10 rutas simultáneas.
+
+
+3. PRUEBA DE CONTROL (VALIDACIÓN CON SOLUCIÓN EXACTA)
+
+Para verificar la corrección del algoritmo, se programó una prueba unitaria con
+4 nodos formando un cuadrado de lado 1.0 km:
+- Centro en (0, 0)
+- Tiendas en (0, 1), (1, 1) y (1, 0)
+El perímetro del cuadrado es exactamente 1 + 1 + 1 + 1 = 4.0000 km.
+Partiendo de una ruta desordenada que cruzaba diagonales (~4.83 km), el algoritmo
+convergió con exactitud a 4.0000 km, validando que el algoritmo encuentra el
+óptimo global matemático en casos de prueba.
+
+
+4. RESUMEN DE RESULTADOS DE SIMULACIÓN (15 ENSAYOS)
+Se ejecutaron 15 simulaciones (3 tipos de inicio x 5 semillas pseudoaleatorias):
+
+- Referencia (orden natural): Media inicial 421.78 km -> Mejor final: 221.06 km
+- Aleatorio:                  Media inicial 425.51 km -> Mejor final: 221.48 km
+- Vecino más cercano:         Media inicial 225.24 km -> Mejor final: 220.39 km
+
+MEJOR SOLUCIÓN GLOBAL ENCONTRADA:
+- Distancia: 220.39 km (Semilla 3 con inicio por vecino cercano)
+- Reducción frente a la referencia base: 47.75% (ahorro de 201.39 km de ruta)
+
+Métricas operativas estimadas en Culiacán:
+- Consumo de combustible: Se reduce de 70.30 L a 36.73 L (ahorro de 33.56 L/día)
+- Costo diario de combustible: Se reduce de $1,757.43 a $918.31 MXN (ahorro de $839.11 MXN/día)
+- Ahorro mensual estimado (26 días): $21,816.86 MXN
+- Tiempo de conducción acumulado: Se reduce en 483.3 minutos (más de 8 horas menos de exposición al calor)
+
+
+5. ESTRUCTURA DE ARCHIVOS ENTREGADOS
+
+- enrutamiento_recocido_estudiante.ipynb : Notebook de Jupyter pre-ejecutada con
+  código comentado de forma simple y las 3 gráficas incrustadas.
+- informe_proyecto_recocido.pdf : Informe formal de 8 páginas listo para Teams.
+- documentacion_proyecto.txt : Este archivo con los conceptos técnicos explicados.
+- codigo_recocido.py : Script en Python puro ejecutable en consola.
+- datos/ : Carpeta con matriz.csv (100x100) y tiendas.csv.
+- resultados/ : Carpeta con los archivos CSV y las 3 figuras PNG.
+
